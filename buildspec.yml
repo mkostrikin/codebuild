@@ -1,0 +1,27 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    commands:
+      - echo running an install
+      - export REPO_NAME=$(basename ${CODEBUILD_SOURCE_REPO_URL/\.git})
+      - export IMAGE_REPO_NAME=$(aws ecr describe-repositories --repository-names ${REPO_NAME} --output text --query 'repositories[*].[repositoryUri]')
+      - export IMAGE_TAG='latest'
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $IMAGE_REPO_NAME
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $IMAGE_REPO_NAME:$IMAGE_TAG
+      - echo Job completed on `date`
